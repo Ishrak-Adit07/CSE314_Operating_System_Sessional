@@ -143,7 +143,6 @@ for student_file in "$working_directory"/*; do
 
             mkdir -p "$student_folder"
             cp "$student_file" "$student_folder/"
-            remarks="$remarks issue case #1"
         # File submitted
         elif [ -f "$student_file" ]; then
 
@@ -152,7 +151,7 @@ for student_file in "$working_directory"/*; do
             student_folder="checked/$student_id"
 
             mkdir -p "$student_folder"
-            cp "$file_name" "$student_folder/"
+            cp "$student_file" "$student_folder/"
         fi
     fi
 
