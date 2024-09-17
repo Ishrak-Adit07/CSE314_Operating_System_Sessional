@@ -29,6 +29,12 @@ fi
 # Reading input file
 readarray -t lines <"$input_file"
 
+# Verifying number of lines read
+if [ "${#lines[@]}" -ne 11 ]; then
+    echo "Expected 11 lines in the input file, but got ${#lines[@]} lines."
+    exit 1
+fi
+
 use_archive=${lines[0]}
 allowed_archive_formats=${lines[1]}
 allowed_languages=${lines[2]}
@@ -68,18 +74,24 @@ validate_integer "$unmatched_output_penalty"
 validate_integer "$submission_violation_penalty"
 validate_integer "$plagiarism_penalty"
 
-# For submission confirmation
+# Verifying that allowed_archive_formats and allowed_languages are provided
+if [ -z "$allowed_archive_formats" ] || [ -z "$allowed_languages" ]; then
+    echo "Error: allowed_archive_formats is empty."
+    exit 1
+fi
+
+# Array for submission confirmation
 number_of_students=$((student_id_end - student_id_start + 1))
 bool_array=()
 for ((i = 0; i < number_of_students; i++)); do
     bool_array[i]=0
 done
 
-# For sorting correct and incorrect submissions
+# Folders for sorting correct and incorrect submissions
 mkdir -p issues checked
 rm -rf issues/* checked/*
 
-# CSV file initiation
+# marks.csv file initiation
 echo "id,marks,marks_deducted,total_marks,remarks" >marks.csv
 
 # Traversing submitted files
@@ -125,9 +137,9 @@ for student_file in "$working_directory"/*; do
             if [[ ! " ${allowed_archive_formats} " =~ " ${extension} " ]]; then
                 remarks="$remarks issue case #2"
                 marks_deducted=$((marks_deducted + submission_violation_penalty))
-                cp "$student_file" issues/
+                mkdir -p "issues/$student_id"
+                cp "$student_file" "issues/$student_id"
                 echo "$student_id,0,$marks_deducted,-$marks_deducted,$remarks" >>marks.csv
-
                 continue
             fi
 
@@ -191,8 +203,8 @@ for student_file in "$working_directory"/*; do
     submission_file=$(find "$student_folder" -type f -name "$student_id.*" | head -n 1)
 
     if [ -z "$submission_file" ]; then
-        # marks_deducted=$((marks_deducted + submission_violation_penalty))
-        echo "$student_id,0,$marks_deducted,$total_marks,$remarks" >>marks.csv
+        remarks="$remarks submission file not found"
+        echo "$student_id,0,$marks_deducted,-$marks_deducted,$remarks" >>marks.csv
         continue
     fi
 
@@ -200,6 +212,11 @@ for student_file in "$working_directory"/*; do
     if [[ ! " $allowed_languages " =~ "${submission_file##*.}" ]]; then
         remarks="$remarks issue case #3"
         marks_deducted=$((marks_deducted + submission_violation_penalty))
+
+        mkdir -p "issues/$student_id"
+        cp $submission_file "issues/$student_id"
+        rm -r "$student_folder"
+
         echo "$student_id,0,$marks_deducted,-$marks_deducted,$remarks" >>marks.csv
         continue
     fi
@@ -225,8 +242,8 @@ for student_file in "$working_directory"/*; do
     marks_deducted_by_evaluation=$((unmatched_lines * unmatched_output_penalty))
 
     # Writing final marks to csv file
-    evaluated_marks=$((total_marks - marks_deducted_by_evaluation)) # For output
-    final_marks=$((evaluated_marks - marks_deducted))               # For issues
+    evaluated_marks=$((total_marks - marks_deducted_by_evaluation))
+    final_marks=$((evaluated_marks - marks_deducted))
 
     # Penalty for plagiarism
     if grep -q "$student_id" "$plagiarism_file"; then
@@ -239,9 +256,13 @@ for student_file in "$working_directory"/*; do
 
     # Adding file to issues folder
     if [ -n "$remarks" ]; then
-        cp "$student_file" issues/
-        # rm -r "$student_folder"
+        if [ ! -e "issues/$student_id" ]; then
+            mkdir -p "issues/$student_id"
+        fi
+        cp "$student_file" "issues/$student_id"
+        rm -r "$student_folder"
     fi
+
 done
 
 # Adding missing submission to remarks
