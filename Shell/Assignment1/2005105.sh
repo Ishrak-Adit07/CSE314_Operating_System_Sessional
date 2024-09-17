@@ -43,6 +43,31 @@ plagiarism_penalty=${lines[10]}
 
 IFS=' ' read -r student_id_start student_id_end <<<"$student_id_range"
 
+# Validating File Paths
+validate_file_path() {
+    if [[ ! -e "$1" ]]; then
+        echo "Path $1 not found"
+        exit 1
+    fi
+}
+validate_file_path "$working_directory"
+validate_file_path "$expected_output_file_location"
+validate_file_path "$plagiarism_file"
+
+# Validating Evaluation Parameters
+validate_integer() {
+    if ! [[ "$1" =~ ^[0-9]+$ ]]; then
+        echo "Invalid value: $1. Must be an integer."
+        exit 1
+    fi
+}
+validate_integer "$total_marks"
+validate_integer "$student_id_start"
+validate_integer "$student_id_end"
+validate_integer "$unmatched_output_penalty"
+validate_integer "$submission_violation_penalty"
+validate_integer "$plagiarism_penalty"
+
 # For submission confirmation
 number_of_students=$((student_id_end - student_id_start + 1))
 bool_array=()
@@ -88,10 +113,6 @@ for student_file in "$working_directory"/*; do
         if [ -d "$student_file" ]; then
             student_file=$(find "$student_file" -type f | head -n 1)
 
-            # file_name=$(basename "$student_file")
-            # student_id="${file_name%.*}"
-            # student_folder="checked/$student_id"
-
             mkdir -p "$student_folder"
             cp "$student_file" "$student_folder/"
             remarks="$remarks issue case #1"
@@ -105,7 +126,7 @@ for student_file in "$working_directory"/*; do
                 remarks="$remarks issue case #2"
                 marks_deducted=$((marks_deducted + submission_violation_penalty))
                 cp "$student_file" issues/
-                echo "$student_id,0,0,$total_marks,$remarks" >>marks.csv
+                echo "$student_id,0,$marks_deducted,-$marks_deducted,$remarks" >>marks.csv
 
                 continue
             fi
@@ -113,22 +134,27 @@ for student_file in "$working_directory"/*; do
             # Extract file to folder
             mkdir -p "$student_folder"
             if [ "$extension" == "zip" ]; then
+                extracted_folder=$(unzip -Z1 "$student_file" | grep -o '^[^/]*/' | head -n 1)
                 unzip "$student_file" -d "$student_folder" &>/dev/null
             elif [ "$extension" == "rar" ]; then
+                extracted_folder=$(unrar lb "$student_file" | grep -o '^[^/]*/' | head -n 1)
                 unrar x "$student_file" "$student_folder" &>/dev/null
             elif [ "$extension" == "tar" ]; then
+                extracted_folder=$(tar -tf "$student_file" | grep -o '^[^/]*/' | head -n 1)
                 tar -xf "$student_file" -C "$student_folder" &>/dev/null
             fi
+
         fi
 
-        # Verify extracted folder submission
-        extracted_file_name=$(basename "$student_file")
-        extracted_student_id="${extracted_file_name%.*}"
+        if [ -d "$extracted_folder" ]; then
+            # Verify extracted folder submission
+            extracted_file_name=$(basename "$extracted_folder")
+            extracted_student_id="${extracted_file_name%.*}"
 
-        if [[ "$extracted_student_id" != "$student_id" ]]; then
-            remarks="$remarks issue case #4"
-            echo $student_id $extracted_student_id
-            echo "$student_id,0,0,$total_marks,$remarks" >>marks.csv
+            if [[ "$extracted_student_id" != "$student_id" ]]; then
+                remarks="$remarks issue case #4"
+                marks_deducted=$((marks_deducted + submission_violation_penalty))
+            fi
         fi
 
     # For - archived file not expected
@@ -145,6 +171,12 @@ for student_file in "$working_directory"/*; do
             cp "$student_file" "$student_folder/"
         # File submitted
         elif [ -f "$student_file" ]; then
+
+            # If archived, skip evaluation
+            if [[ ! " $allowed_languages " =~ "${student_file##*.}" ]]; then
+                echo "$student_id,0,0,$total_marks,$remarks" >>marks.csv
+                continue
+            fi
 
             file_name=$(basename "$student_file")
             student_id="${file_name%.*}"
@@ -168,7 +200,7 @@ for student_file in "$working_directory"/*; do
     if [[ ! " $allowed_languages " =~ "${submission_file##*.}" ]]; then
         remarks="$remarks issue case #3"
         marks_deducted=$((marks_deducted + submission_violation_penalty))
-        echo "$student_id,0,0,$total_marks,$remarks" >>marks.csv
+        echo "$student_id,0,$marks_deducted,-$marks_deducted,$remarks" >>marks.csv
         continue
     fi
 
@@ -187,19 +219,23 @@ for student_file in "$working_directory"/*; do
     # Creating and matching student_output_file
     generated_output="$output_file"
     expected_output_file="$expected_output_file_location"
+    marks_deducted_by_evaluation=0
 
     unmatched_lines=$(grep -Fxvf "$expected_output_file" "$generated_output" | wc -l)
-    marks_deducted=$((marks_deducted + unmatched_lines * unmatched_output_penalty))
-
-    # Deduction for plagiarism
-    if grep -q "$student_id" "$plagiarism_file"; then
-        remarks="$remarks plagiarism detected"
-        marks_deducted=$((marks_deducted + plagiarism_penalty))
-    fi
+    marks_deducted_by_evaluation=$((unmatched_lines * unmatched_output_penalty))
 
     # Writing final marks to csv file
-    final_marks=$((total_marks - marks_deducted))
-    echo "$student_id,$total_marks,$marks_deducted,$final_marks,$remarks" >>marks.csv
+    evaluated_marks=$((total_marks - marks_deducted_by_evaluation)) # For output
+    final_marks=$((evaluated_marks - marks_deducted))               # For issues
+
+    # Penalty for plagiarism
+    if grep -q "$student_id" "$plagiarism_file"; then
+        remarks="$remarks plagiarism detected"
+        echo "$student_id,$evaluated_marks,$marks_deducted,-100,$remarks" >>marks.csv
+        continue
+    fi
+
+    echo "$student_id,$evaluated_marks,$marks_deducted,$final_marks,$remarks" >>marks.csv
 
     # Adding file to issues folder
     if [ -n "$remarks" ]; then
@@ -219,4 +255,4 @@ for ((i = 0; i < number_of_students; i++)); do
 done
 
 # Sorting the csv file by id
-{ head -n 1 marks.csv && tail -n +2 marks.csv | sort -t, -k1,1; } > temp.csv && mv temp.csv marks.csv
+{ head -n 1 marks.csv && tail -n +2 marks.csv | sort -t, -k1,1; } >temp.csv && mv temp.csv marks.csv
