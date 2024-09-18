@@ -61,6 +61,11 @@ validate_file_path "$expected_output_file_location"
 validate_file_path "$plagiarism_file"
 
 # Validating Evaluation Parameters
+if [[ "$use_archive" != "true" && "$use_archive" != "false" ]]; then
+    echo "use_archive should be either 'true' or 'false', but got '$use_archive'"
+    exit 1
+fi
+
 validate_integer() {
     if ! [[ "$1" =~ ^[0-9]+$ ]]; then
         echo "Invalid value: $1. Must be an integer."
