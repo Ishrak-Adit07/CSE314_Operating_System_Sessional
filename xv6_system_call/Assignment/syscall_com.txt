@@ -1,0 +1,21 @@
+Communication with syscall
+
+# create new_file.c, e.g, square.c in user folder
+# use desired function within main function
+# include "kernel/types.h" and "user.h" in c file, in that order
+# include $U/_square\ in UPROGS in Makefile in xv6-riscv folder
+# Add function declaration in user.h file
+# entry("hello") in usys.pl perl file
+# #define SYS_hello # in kernel/syscall.h
+# Add [SYS_hello]   sys_hello in static uint64 (*syscalls[])(void) in kernel/syscall.c
+# Add declaration extern uint64 sys_hello(void); in kernel/syscall.c
+# Add definition sys_hello(void){...} in kernel/sysproc.c
+
+Passing parameters through user function
+# Pass parameter in user file
+# modify function declaration and definition
+
+Reading parameter
+# Use functions defined in kernel/defs.h
+# not a good practice to use argraw by removing static
+# argint, argaddr, copyin, copyout
