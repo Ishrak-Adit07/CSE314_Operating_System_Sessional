@@ -317,33 +317,37 @@ syscall(void)
   num = p->trapframe->a7;
   // int first_argument = p->trapframe->a0;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+
+    // Task 1
+    int syscall_id = p->syscall_id;
+    if(num > 0 && num < NELEM(syscalls) && num==syscall_id){
+      printf("pid: %d", p->pid);
+      printf(", ");
+
+      printf("syscall: %s", getSyscallName(syscall_id));
+      printf(", ");
+
+      printf("args: ");
+      printf("(");
+      print_syscall_args(syscall_id);
+      printf(")");
+      printf(", ");
+    }
+
+    // Not Task 1
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->trapframe->a0
     p->trapframe->a0 = syscalls[num]();
+
+    // Task 1
+    if(num > 0 && num < NELEM(syscalls) && num==syscall_id){
+      printf("return: %lu", p->trapframe->a0);
+      printf("\n");
+    }
   }
   else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);
     p->trapframe->a0 = -1;
-  }
-
-  // Task 1
-  int syscall_id = p->syscall_id;
-  if(num > 0 && num < NELEM(syscalls) && num==syscall_id){
-    printf("pid: %d", p->pid);
-    printf(", ");
-
-    printf("syscall: %s", getSyscallName(syscall_id));
-    printf(", ");
-
-    printf("args: ");
-    // print_syscall_args(syscall_id, first_argument);
-    printf("(");
-    print_syscall_args(syscall_id);
-    printf(")");
-    printf(", ");
-
-    printf("return: %lu", p->trapframe->a0);
-    printf("\n");
   }
 }
