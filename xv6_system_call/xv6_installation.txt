@@ -6,9 +6,16 @@ make clean; make qemu
 Generating patch (from inside xv6-riscv directory):
 git add --all; git diff HEAD > <patch file name>
 e.g.: git add --all; git diff HEAD > ../test.patch
+
+git add --all; git diff HEAD > ../2005105.patch
+
 Applying patch:
 git apply --whitespace=fix <patch file name>
 e.g.: git apply --whitespace=fix ../test.patch
+
+git clean -fdx; git reset --hard
+git apply --whitespace=fix ../2005105.patch
+
 Cleanup git directory:
 git clean -fdx; git reset --hard
 Explanation of source code (Not required for this course, but you may want to go through it):
