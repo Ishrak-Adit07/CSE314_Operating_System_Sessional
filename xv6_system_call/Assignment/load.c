@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
             printf("Child allocated %d byte.\n", allocationAmount);
 
             printf("Child going to sleep.\n");
-            sleep(20);
+            sleep(30);
 
             free(allocated_memory);
             exit(0);
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    sleep(50);
+    sleep(30);
 
     printf("Parent wake up.\n");
     

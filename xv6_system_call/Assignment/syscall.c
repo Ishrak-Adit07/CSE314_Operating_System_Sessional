@@ -149,129 +149,94 @@ print_syscall_args(int syscall_id) {
 
   switch (syscall_id) {
     case SYS_fork:
-      // Fork has no arguments
-      printf("None");
       break;
     case SYS_exit:
-      // Exit takes one argument (exit code)
       argint(0, &arg0);
       printf("%d", arg0);
       break;
     case SYS_wait:
-      // Wait has no arguments
-      printf("None");
       break;
     case SYS_pipe:
       argint(0, &arg0);
       argaddr(0, &addr0);
-      printf("%d, 0x%p", arg0, (void*)addr0);
+      printf("%d, %p", arg0, (void*)addr0);
       break;
     case SYS_read:
-      // Read takes 3 arguments: file descriptor, buffer address, size
       argint(0, &arg0);
       argaddr(1, &addr0);
       argint(2, &arg1);
-      printf("%d, 0x%p, %d", arg0, (void*)addr0, arg1);
+      printf("%d, %p, %d", arg0, (void*)addr0, arg1);
       break;
     case SYS_kill:
-      // Kill takes 2 arguments: pid, signal number
       argint(0, &arg0);
       argint(1, &arg1);
       printf("%d, %d", arg0, arg1);
       break;
     case SYS_exec:
-      // Exec takes 2 arguments: program name, argument array
       argaddr(0, &addr0);
       argaddr(1, &addr1);
-      printf("0x%p, 0x%p", (void*)addr0, (void*)addr1);
+      printf("%p, %p", (void*)addr0, (void*)addr1);
       break;
     case SYS_fstat:
-      // Fstat takes 2 arguments: file descriptor, buffer address
       argint(0, &arg0);
       argaddr(1, &addr0);
-      printf("%d, 0x%p", arg0, (void*)addr0);
+      printf("%d, %p", arg0, (void*)addr0);
       break;
     case SYS_chdir:
-      // Chdir takes 1 argument: directory path
       argaddr(0, &addr0);
-      printf("0x%p", (void*)addr0);
+      printf("%p", (void*)addr0);
       break;
     case SYS_dup:
-      // Dup takes 1 argument: file descriptor
       argint(0, &arg0);
       printf("%d", arg0);
       break;
     case SYS_getpid:
-      // Getpid has no arguments
-      printf("None");
       break;
     case SYS_sbrk:
-      // Sbrk takes 1 argument: memory increment size
       argint(0, &arg0);
       printf("%d", arg0);
       break;
     case SYS_sleep:
-      // Sleep takes 1 argument: number of ticks
       argint(0, &arg0);
       printf("%d", arg0);
       break;
     case SYS_uptime:
-      // Uptime has no arguments
-      printf("None");
       break;
     case SYS_open:
-      // Open takes 2 arguments: file path, mode
       argaddr(0, &addr0);
       argint(1, &arg0);
-      printf("0x%p, %d", (void*)addr0, arg0);
+      printf("%p, %d", (void*)addr0, arg0);
       break;
     case SYS_write:
-      // Write takes 3 arguments: file descriptor, buffer address, size
       argint(0, &arg0);
       argaddr(1, &addr0);
       argint(2, &arg1);
-      printf("%d, 0x%p, %d", arg0, (void*)addr0, arg1);
+      printf("%d, %p, %d", arg0, (void*)addr0, arg1);
       break;
     case SYS_mknod:
-      // Mknod takes 3 arguments: file path, mode, device number
       argaddr(0, &addr0);
       argint(1, &arg0);
       argint(2, &arg1);
-      printf("0x%p, %d, %d", (void*)addr0, arg0, arg1);
+      printf("%p, %d, %d", (void*)addr0, arg0, arg1);
       break;
     case SYS_unlink:
-      // Unlink takes 1 argument: file path
       argaddr(0, &addr0);
-      printf("0x%p", (void*)addr0);
+      printf("%p", (void*)addr0);
       break;
     case SYS_link:
-      // Link takes 2 arguments: old path, new path
       argaddr(0, &addr0);
       argaddr(1, &addr1);
-      printf("0x%p, 0x%p", (void*)addr0, (void*)addr1);
+      printf("%p, %p", (void*)addr0, (void*)addr1);
       break;
     case SYS_mkdir:
-      // Mkdir takes 1 argument: directory path
       argaddr(0, &addr0);
-      printf("0x%p", (void*)addr0);
+      printf("%p", (void*)addr0);
       break;
     case SYS_close:
-      // Close takes 1 argument: file descriptor
       argint(0, &arg0);
       printf("%d", arg0);
-      break;
-    case SYS_trace:
-      // Trace takes 1 argument: system call ID
-      argint(0, &arg0);
-      printf("%d", arg0);
-      break;
-    case SYS_info:
-      // Info has no arguments
-      printf("None");
       break;
     default:
-      // Unknown syscall or no special handling
-      printf("Unknown syscall or no arguments");
       break;
   }
 }
@@ -301,11 +266,7 @@ const char *syscall_names[] = {
 };
 
 const char* getSyscallName(int syscall_id) {
-    if (syscall_id > 0 && syscall_id < NELEM(syscall_names)) {
-        return syscall_names[syscall_id];
-    } else {
-        return "unknown";
-    }
+  return syscall_names[syscall_id];
 }
 
 void

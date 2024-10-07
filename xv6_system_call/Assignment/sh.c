@@ -205,6 +205,8 @@ main(void) {
              strcpy(buf, prev_commands[index]);
              printf("%s", buf);
         }
+        // Task 3 end
+        
         // Bonus task
         else if (buf[0] == '!' && buf[1] == '!' && buf[2] == ' ') {
             int n = atoi(buf + 3);
@@ -216,29 +218,24 @@ main(void) {
             strcpy(buf, prev_commands[index]);
             printf("%s", buf);
           
-        } else {
+        } 
+        else {
             strcpy(prev_commands[prev_commands_count % MAX_PREV_COMMANDS], buf);
             prev_commands_count++;
         }
+        // Bonus task end
 
-        // Handle 'cd' command specially, because it must be done in the parent
         if (buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' ') {
-            buf[strlen(buf) - 1] = 0;  // Remove newline
+            buf[strlen(buf) - 1] = 0;
             if (chdir(buf + 3) < 0) {
                 fprintf(2, "cannot cd %s\n", buf + 3);
             }
             continue;
         }
-
-        // Fork and execute the command
-        if (fork1() == 0) {
+        if (fork1() == 0)
             runcmd(parsecmd(buf));
-        }
-
-        // Wait for child process to finish
         wait(0);
     }
-
     exit(0);
 }
 

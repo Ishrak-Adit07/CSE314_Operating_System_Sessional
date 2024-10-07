@@ -14,7 +14,6 @@ struct proc proc[NPROC];
 void get_proc_info(int *activeProcess, int *totalProcess, int* memsize, int* totalMemSize){
 
   int active_process_count = 0;
-  // int total_process_count = 0; 
   int mem_size = 0;
 
   struct proc *p;
@@ -22,9 +21,6 @@ void get_proc_info(int *activeProcess, int *totalProcess, int* memsize, int* tot
   for(p = proc; p < &proc[NPROC]; p++){
     acquire(&p->lock);
 
-    // if((p->state != 0)){
-    //   total_process_count++;
-    // }
     if((p->state == RUNNABLE) || (p->state == RUNNING) || (p->state == SLEEPING)){
       active_process_count++;
       mem_size += p->sz;
@@ -34,10 +30,11 @@ void get_proc_info(int *activeProcess, int *totalProcess, int* memsize, int* tot
   }
 
   *activeProcess = active_process_count;
-  *totalProcess = 64;
+  *totalProcess = NPROC;
   *memsize = mem_size;
   *totalMemSize = (PHYSTOP-KERNBASE)/(1024*1024);
 }
+// Task 2 end
 
 struct proc *initproc;
 

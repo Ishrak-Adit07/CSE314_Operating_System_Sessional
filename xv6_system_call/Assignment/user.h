@@ -30,7 +30,6 @@ int trace(int);
 // Task 2
 int info(struct procInfo*);
 
-
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
