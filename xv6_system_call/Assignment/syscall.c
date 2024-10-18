@@ -146,6 +146,9 @@ void
 print_syscall_args(int syscall_id) {
   int arg0, arg1;
   uint64 addr0, addr1;
+  int MAX_LENGTH = 256;
+  char command0[MAX_LENGTH];
+  char command1[MAX_LENGTH];
 
   switch (syscall_id) {
     case SYS_fork:
@@ -155,11 +158,12 @@ print_syscall_args(int syscall_id) {
       printf("%d", arg0);
       break;
     case SYS_wait:
+      argaddr(0, &addr0);
+      printf("%p", (int*)addr0);
       break;
     case SYS_pipe:
-      argint(0, &arg0);
       argaddr(0, &addr0);
-      printf("%d, %p", arg0, (void*)addr0);
+      printf("%p", (void*)addr0);
       break;
     case SYS_read:
       argint(0, &arg0);
@@ -169,13 +173,12 @@ print_syscall_args(int syscall_id) {
       break;
     case SYS_kill:
       argint(0, &arg0);
-      argint(1, &arg1);
-      printf("%d, %d", arg0, arg1);
+      printf("%d", arg0);
       break;
     case SYS_exec:
-      argaddr(0, &addr0);
+      argstr(0, command0, MAX_LENGTH);
       argaddr(1, &addr1);
-      printf("%p, %p", (void*)addr0, (void*)addr1);
+      printf("%s, %p", command0, (void*)addr1);
       break;
     case SYS_fstat:
       argint(0, &arg0);
@@ -183,8 +186,8 @@ print_syscall_args(int syscall_id) {
       printf("%d, %p", arg0, (void*)addr0);
       break;
     case SYS_chdir:
-      argaddr(0, &addr0);
-      printf("%p", (void*)addr0);
+      argstr(0, command0, MAX_LENGTH);
+      printf("%s", command0);
       break;
     case SYS_dup:
       argint(0, &arg0);
@@ -203,9 +206,9 @@ print_syscall_args(int syscall_id) {
     case SYS_uptime:
       break;
     case SYS_open:
-      argaddr(0, &addr0);
+      argstr(0, command0, MAX_LENGTH);
       argint(1, &arg0);
-      printf("%p, %d", (void*)addr0, arg0);
+      printf("%s, %d", command0, arg0);
       break;
     case SYS_write:
       argint(0, &arg0);
@@ -214,23 +217,23 @@ print_syscall_args(int syscall_id) {
       printf("%d, %p, %d", arg0, (void*)addr0, arg1);
       break;
     case SYS_mknod:
-      argaddr(0, &addr0);
+      argstr(0, command0, MAX_LENGTH);
       argint(1, &arg0);
       argint(2, &arg1);
-      printf("%p, %d, %d", (void*)addr0, arg0, arg1);
+      printf("%s, %d, %d", command0, arg0, arg1);
       break;
     case SYS_unlink:
-      argaddr(0, &addr0);
-      printf("%p", (void*)addr0);
+      argstr(0, command0, MAX_LENGTH);
+      printf("%s", command0);
       break;
     case SYS_link:
-      argaddr(0, &addr0);
-      argaddr(1, &addr1);
-      printf("%p, %p", (void*)addr0, (void*)addr1);
+      argstr(0, command0, MAX_LENGTH);
+      argstr(1, command1, MAX_LENGTH);
+      printf("%s, %s", command0, command1);
       break;
     case SYS_mkdir:
-      argaddr(0, &addr0);
-      printf("%p", (void*)addr0);
+      argstr(0, command0, MAX_LENGTH);
+      printf("%s", command0);
       break;
     case SYS_close:
       argint(0, &arg0);
