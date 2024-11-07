@@ -1,0 +1,4 @@
+Make CPUS := 1 in Makefile
+
+create user files dummyproc.c and testprocinfo.c
+add them to Makefile
