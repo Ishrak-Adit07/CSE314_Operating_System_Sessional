@@ -12,10 +12,10 @@
   results to get the total sum.
 
   Compilation:
-    g++ -pthread simple_sum_calculation.cpp -o a.out
+    g++ -pthread simple_sum_calculation.cpp -o b.out
 
   Usage:
-    ./a.out
+    ./b.out
 
   Prepared by: Nafis Tahmid (1905002), Date: 10 November 2024
 */

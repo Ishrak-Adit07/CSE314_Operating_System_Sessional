@@ -14,7 +14,7 @@
   recorded in a thread-safe manner to prevent log mixing.
 
   Compilation:
-    g++ -pthread student_template.cpp -o a.out
+    g++ -pthread student_report_printing.cpp -o a.out
 
   Usage:
     ./a.out <input_file> <output_file>
