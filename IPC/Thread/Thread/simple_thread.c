@@ -23,10 +23,6 @@ void * threadFunc2(void * arg)
 	}
 }
 
-
-
-
-
 int main(void)
 {	
 	pthread_t thread1;
