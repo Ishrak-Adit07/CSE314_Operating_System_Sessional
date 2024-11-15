@@ -7,36 +7,53 @@ using namespace std;
 
 #define GALLERY1_CAPACITY 5
 #define GLASS_CORIDOR_DE_CAPACITY 3
-#define PREMIUM_VISITOR_PROBABILITY 7
+#define PREMIUM_VISITOR_PROBABILITY 5
 
 void createVisitors(int standard_visitors, int premium_visitors, MuseumParameters &museum_parameters)
 {
     int current_standard_visitors = 0;
     int current_premium_visitors = 0;
 
-    // Loop until all visitors are created
-    while (standard_visitors > 0 || premium_visitors > 0)
+    // Calculate half of the premium visitors
+    int half_premium = premium_visitors / 2;
+
+    // Step 1: Create half of the premium visitors
+    for (int i = 0; i < half_premium; i++)
     {
-        int random_delay = get_random_number() % 10 + 1;
+        create_Visitor_Thread(new Visitor(2001 + current_premium_visitors, 1), museum_parameters);
+        current_premium_visitors++;
+        premium_visitors--;
+        sleep(get_random_number() % 10 + 1); // Add random delay
+    }
 
-        if (premium_visitors > 0 && (random_delay <= PREMIUM_VISITOR_PROBABILITY || standard_visitors == 0))
-        {
-            // Create a premium visitor
-            create_Visitor_Thread(new Visitor(2001 + current_premium_visitors, 1), museum_parameters);
-            premium_visitors--;
-            current_premium_visitors++;
-        }
-        else if (standard_visitors > 0)
-        {
-            // Create a standard visitor
-            create_Visitor_Thread(new Visitor(1001 + current_standard_visitors, 0), museum_parameters);
-            standard_visitors--;
-            current_standard_visitors++;
-        }
+    // Step 2: Create 2 standard visitors (if available)
+    for (int i = 0; i < 2 && standard_visitors > 0; i++)
+    {
+        create_Visitor_Thread(new Visitor(1001 + current_standard_visitors, 0), museum_parameters);
+        current_standard_visitors++;
+        standard_visitors--;
+        sleep(get_random_number() % 10 + 1); // Add random delay
+    }
 
-        sleep(random_delay); // Add delay before creating the next visitor
+    // Step 3: Create the remaining premium visitors
+    while (premium_visitors > 0)
+    {
+        create_Visitor_Thread(new Visitor(2001 + current_premium_visitors, 1), museum_parameters);
+        current_premium_visitors++;
+        premium_visitors--;
+        sleep(get_random_number() % 10 + 1); // Add random delay
+    }
+
+    // Step 4: Create the remaining standard visitors
+    while (standard_visitors > 0)
+    {
+        create_Visitor_Thread(new Visitor(1001 + current_standard_visitors, 0), museum_parameters);
+        current_standard_visitors++;
+        standard_visitors--;
+        sleep(get_random_number() % 10 + 1); // Add random delay
     }
 }
+
 
 int main(void)
 {

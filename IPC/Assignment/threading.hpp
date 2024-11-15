@@ -29,6 +29,7 @@ mutex photo_booth_access;
 mutex photo_booth_exclusive;
 mutex standard_access_lock;
 mutex premium_access_lock;
+mutex photo_booth_priority_guard;
 // Condition variables for photo booth locking
 condition_variable photo_booth_cv;
 // Boolean variables for condition variables
@@ -162,7 +163,10 @@ void *visitorThreadFunction(void *arg)
     // Premium visitors
     if (isPremium(visitor->getId()))
     {
-        photo_booth_priority = true;
+        {
+            lock_guard<mutex> lock(photo_booth_priority_guard);
+            photo_booth_priority = true;
+        }
         photo_booth_cv.notify_all();
 
         // Entering the photo booth
@@ -171,11 +175,14 @@ void *visitorThreadFunction(void *arg)
         // Exclusive access
         photo_booth_exclusive.lock(); // Lock exclusive access
         {
-            photo_booth_priority = false;
-            photo_booth_cv.notify_all();
-
             lock_guard<mutex> lock(cout_mutex);
             cout << "Visitor " << visitor->getId() << " is inside the photo booth at timestamp " << time_stamp << endl;
+
+            {
+                lock_guard<mutex> lock(photo_booth_priority_guard);
+                photo_booth_priority = false;
+            }
+            photo_booth_cv.notify_all();
         }
         sleep(museum_parameters->getPhotoBoothTime());
         photo_booth_exclusive.unlock(); // Unlock exclusive access
@@ -188,9 +195,12 @@ void *visitorThreadFunction(void *arg)
     {
 
         {
-            unique_lock<mutex> lock(photo_booth_access);
-            photo_booth_cv.wait(lock, [&]
-                                { return !photo_booth_priority; });
+            lock_guard<mutex> lock1(photo_booth_priority_guard);
+            {
+                unique_lock<mutex> lock(photo_booth_access);
+                photo_booth_cv.wait(lock, [&]
+                                    { return !photo_booth_priority; });
+            }
         }
 
         {

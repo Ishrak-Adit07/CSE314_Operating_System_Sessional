@@ -1,241 +1,84 @@
 #include <iostream>
-#include <pthread.h>
-#include <unistd.h>
-#include <vector>
-#include <mutex>
-#include <semaphore.h>
-#include <condition_variable>
-#include "poisson_random_number_generator.hpp"
+#include <fstream>
+#include "visitor.hpp"
+#include "threading.hpp"
 
 using namespace std;
 
-int time_stamp = 0;
-vector<pthread_t> visitorThreads;
+#define GALLERY1_CAPACITY 5
+#define GLASS_CORIDOR_DE_CAPACITY 3
+#define PREMIUM_VISITOR_PROBABILITY 5
 
-// Auxiliary mutex for exclusive printing and timestamp update
-mutex cout_mutex;
-mutex time_mutex;
-
-// Mutex for step locking
-mutex step_1;
-mutex step_2;
-mutex step_3;
-
-// Mutex for photo booth locking
-mutex photo_booth_access;
-mutex photo_booth_exclusive;
-mutex standard_access_lock;
-mutex premium_access_lock;
-// Condition variables for photo booth locking
-condition_variable photo_booth_cv;
-// Boolean variables for condition variables
-bool photo_booth_priority;
-
-int standard_visitor_count = 0;
-int premium_visitor_count = 0;
-
-// Semaphores for max capacity conservation
-sem_t gallery1_semaphore;
-sem_t glass_corridor_de_semaphore;
-
-bool isPremium(int id) { return id > 2000 && id <= 2999; }
-bool isStandard(int id) { return id > 1000 && id <= 1999; }
-
-// Thread function for updating timestamp
-void *timeStampUpdate(void *arg)
+void createVisitors(int standard_visitors, int premium_visitors, MuseumParameters &museum_parameters)
 {
-    while (true)
+    int current_standard_visitors = 0;
+    int current_premium_visitors = 0;
+
+    // Loop until all visitors are created
+    while (standard_visitors > 0 || premium_visitors > 0)
     {
-        sleep(1);
-        lock_guard<mutex> lock(time_mutex);
-        ++time_stamp;
+        int random_delay = get_random_number() % 10 + 1;
+
+        if (premium_visitors > 0 && (random_delay <= PREMIUM_VISITOR_PROBABILITY || standard_visitors == 0))
+        {
+            // Create a premium visitor
+            create_Visitor_Thread(new Visitor(2001 + current_premium_visitors, 1), museum_parameters);
+            premium_visitors--;
+            current_premium_visitors++;
+        }
+        else if (standard_visitors > 0)
+        {
+            // Create a standard visitor
+            create_Visitor_Thread(new Visitor(1001 + current_standard_visitors, 0), museum_parameters);
+            standard_visitors--;
+            current_standard_visitors++;
+        }
+
+        sleep(random_delay); // Add delay before creating the next visitor
     }
-    return nullptr;
 }
 
-// For simultaneously passing arguments to visitor thread function
-struct VisitorThreadArgs
+int main(void)
 {
-    Visitor *visitor;
-    MuseumParameters *museum_parameters;
-};
 
-// Thread function for museum visit
-void *visitorThreadFunction(void *arg)
-{
-    VisitorThreadArgs *thread_arguments = reinterpret_cast<VisitorThreadArgs *>(arg);
-    Visitor *visitor = thread_arguments->visitor;
-    MuseumParameters *museum_parameters = thread_arguments->museum_parameters;
-    int random_sleep_timer = 0;
-
-    // Entry to museum
+    // Start the time_stamp updater thread
+    pthread_t timeThread;
+    if (pthread_create(&timeThread, nullptr, timeStampUpdate, nullptr) != 0)
     {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " has arrived at A at timestamp " << time_stamp << endl;
-    }
-    // Hallway AB
-    sleep(museum_parameters->getHallwayTime());
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " has arrived at B at timestamp " << time_stamp << endl;
+        cout << "Error creating time updater thread" << endl;
+        return 1;
     }
 
-    // Steps
-    step_1.lock();
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " is at step 1 at timestamp " << time_stamp << endl;
-    }
-    random_sleep_timer = get_random_number() % 3 + 1;
-    sleep(random_sleep_timer);
-    step_2.lock();
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " is at step 2 at timestamp " << time_stamp << endl;
-    }
-    step_1.unlock();
-    random_sleep_timer = get_random_number() % 3 + 1;
-    sleep(random_sleep_timer);
-    step_3.lock();
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " is at step 3 at timestamp " << time_stamp << endl;
-    }
-    step_2.unlock();
-    random_sleep_timer = get_random_number() % 3 + 1;
-    sleep(random_sleep_timer);
+    sem_init(&gallery1_semaphore, 0, GALLERY1_CAPACITY);
+    sem_init(&glass_corridor_de_semaphore, 0, GLASS_CORIDOR_DE_CAPACITY);
 
-    // Waiting to enter Gallery 1
-    sem_wait(&gallery1_semaphore);
-    // Enter Gallery 1
+    int standard_visitors, premium_visitors;
+    int hallway_time, gallery1_time, gallery2_time, photo_booth_time;
+
+    ifstream inputFile("input.txt");
+    if (!inputFile)
     {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " is at C(entered Gallery 1) at timestamp " << time_stamp << endl;
+        cout << "Error opening file." << endl;
+        return 1;
+    }
+    inputFile >> standard_visitors >> premium_visitors;
+    inputFile >> hallway_time >> gallery1_time >> gallery2_time >> photo_booth_time;
+
+    // cin >> standard_visitors >> premium_visitors;
+    // cin >> hallway_time >> gallery1_time >> gallery2_time >> photo_booth_time;
+
+    MuseumParameters museum_parameters(standard_visitors, premium_visitors, hallway_time, gallery1_time, gallery2_time, photo_booth_time);
+
+    srand(time(nullptr));
+
+    createVisitors(standard_visitors, premium_visitors, museum_parameters);
+
+    for (auto &thread : visitorThreads)
+    {
+        pthread_join(thread, nullptr);
     }
 
-    // Unlocking step 2 only after entering Gallery 1
-    step_3.unlock();
-
-    // Gallery 1
-    sleep(museum_parameters->getGallery1Time());
-
-    // Waiting to enter glass corridor
-    sem_wait(&glass_corridor_de_semaphore);
-    // Enter glass corridor
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " is at D(exiting Gallery 1) at timestamp " << time_stamp << endl;
-    }
-
-    // Upto Task 1
-    sem_post(&gallery1_semaphore); // Releasing the semaphore, allowing another visitor to enter gallery 1
-                                   // This is released only after exiting gallery 1
-
-    // Delay for glass corridor
-    random_sleep_timer = get_random_number() % 10 + 1;
-    sleep(random_sleep_timer);
-
-    // Enter glass corridor
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " is at E(entered Gallery 2) at timestamp " << time_stamp << endl;
-    }
-
-    sem_post(&glass_corridor_de_semaphore); // Releasing the semaphore, allowing another visitor to enter glass corridor
-                                            // This is released only after entering gallery 2
-    // Upto Task 2
-
-    // Implementation for Gallery 2
-
-    // Time spent in gallery 2 before reaching photo booth
-    sleep(museum_parameters->getGallery2Time());
-
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " is about to enter the photo booth at timestamp " << time_stamp << endl;
-    }
-
-    // Implementation for photo booth (Incomplete)
-    // Premium visitors
-    if (isPremium(visitor->getId()))
-    {
-        // Entering the photo booth
-        photo_booth_access.lock();
-
-        photo_booth_priority = true;
-        photo_booth_cv.notify_all();
-
-        // Exclusive access
-        photo_booth_exclusive.lock(); // Lock exclusive access
-        {
-            lock_guard<mutex> lock(cout_mutex);
-            cout << "Visitor " << visitor->getId() << " is inside the photo booth at timestamp " << time_stamp << endl;
-        }
-        sleep(museum_parameters->getPhotoBoothTime());
-        photo_booth_exclusive.unlock(); // Unlock exclusive access
-
-        photo_booth_priority = false;
-        photo_booth_cv.notify_all();
-
-        // Exiting the photo booth
-        photo_booth_access.unlock();
-    }
-    // Standard visitors
-    else if (isStandard(visitor->getId()))
-    {
-
-        {
-            unique_lock<mutex> lock(photo_booth_access);
-            photo_booth_cv.wait(lock, [&]
-                                { return !photo_booth_priority; });
-        }
-
-        {
-            lock_guard<mutex> lock(standard_access_lock);
-            standard_visitor_count++;
-            if (standard_visitor_count == 1)
-                photo_booth_exclusive.lock(); // First standard visitor locks exclusive access
-        }
-
-        {
-            lock_guard<mutex> lock(cout_mutex);
-            cout << "Visitor " << visitor->getId() << " is inside the photo booth at timestamp " << time_stamp << endl;
-        }
-        sleep(museum_parameters->getPhotoBoothTime());
-
-        // Exiting the photo booth
-        {
-            lock_guard<mutex> lock(standard_access_lock);
-            standard_visitor_count--;
-            if (standard_visitor_count == 0)
-                photo_booth_exclusive.unlock(); // Last standard visitor unlocks exclusive access
-        }
-    }
-
-    // Exit from museum
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " has exited museum at timestamp " << time_stamp << endl;
-    }
-
-    delete thread_arguments; // Correctly delete the struct
-    return nullptr;
-}
-
-void create_Visitor_Thread(Visitor *visitor, MuseumParameters &museum_parameters)
-{
-    pthread_t thread;
-
-    VisitorThreadArgs *thread_arguments = new VisitorThreadArgs();
-    thread_arguments->visitor = visitor;
-    thread_arguments->museum_parameters = &museum_parameters;
-
-    if (pthread_create(&thread, nullptr, visitorThreadFunction, thread_arguments) != 0)
-    {
-        cout << "Error creating thread" << endl;
-        delete thread_arguments;
-        return;
-    }
-
-    visitorThreads.push_back(thread); // Store the thread ID for later joining
+    sem_destroy(&gallery1_semaphore);
+    sem_destroy(&glass_corridor_de_semaphore);
+    return 0;
 }
