@@ -9,6 +9,9 @@
 
 using namespace std;
 
+#define STEP_DELAY 3
+#define GLASS_CORRIDOR_DELAY 5
+
 int time_stamp = 0;
 vector<pthread_t> visitorThreads;
 
@@ -80,17 +83,13 @@ void *visitorThreadFunction(void *arg)
         cout << "Visitor " << visitor->getId() << " has arrived at B at timestamp " << time_stamp << endl;
     }
 
-    // Delay between B to step 0
-    // random_sleep_timer = get_random_number() % 3 + 1;
-    // sleep(random_sleep_timer);
-
     // Steps
     step_1.lock();
     {
         lock_guard<mutex> lock(cout_mutex);
         cout << "Visitor " << visitor->getId() << " is at step 1 at timestamp " << time_stamp << endl;
     }
-    random_sleep_timer = get_random_number() % 3 + 1;
+    random_sleep_timer = get_random_number() % STEP_DELAY + 1;
     sleep(random_sleep_timer);
     step_2.lock();
     {
@@ -98,7 +97,7 @@ void *visitorThreadFunction(void *arg)
         cout << "Visitor " << visitor->getId() << " is at step 2 at timestamp " << time_stamp << endl;
     }
     step_1.unlock();
-    random_sleep_timer = get_random_number() % 3 + 1;
+    random_sleep_timer = get_random_number() % STEP_DELAY + 1;
     sleep(random_sleep_timer);
     step_3.lock();
     {
@@ -106,7 +105,7 @@ void *visitorThreadFunction(void *arg)
         cout << "Visitor " << visitor->getId() << " is at step 3 at timestamp " << time_stamp << endl;
     }
     step_2.unlock();
-    random_sleep_timer = get_random_number() % 3 + 1;
+    random_sleep_timer = get_random_number() % STEP_DELAY + 1;
     sleep(random_sleep_timer);
 
     // Waiting to enter Gallery 1
@@ -136,7 +135,7 @@ void *visitorThreadFunction(void *arg)
                                    // This is released only after exiting gallery 1
 
     // Delay for glass corridor
-    random_sleep_timer = get_random_number() % 10 + 1;
+    random_sleep_timer = get_random_number() % GLASS_CORRIDOR_DELAY + 1;
     sleep(random_sleep_timer);
 
     // Enter glass corridor
@@ -163,23 +162,23 @@ void *visitorThreadFunction(void *arg)
     // Premium visitors
     if (isPremium(visitor->getId()))
     {
-        // Entering the photo booth
-        photo_booth_access.lock();
-
         photo_booth_priority = true;
         photo_booth_cv.notify_all();
+
+        // Entering the photo booth
+        photo_booth_access.lock();
 
         // Exclusive access
         photo_booth_exclusive.lock(); // Lock exclusive access
         {
+            photo_booth_priority = false;
+            photo_booth_cv.notify_all();
+
             lock_guard<mutex> lock(cout_mutex);
             cout << "Visitor " << visitor->getId() << " is inside the photo booth at timestamp " << time_stamp << endl;
         }
         sleep(museum_parameters->getPhotoBoothTime());
         photo_booth_exclusive.unlock(); // Unlock exclusive access
-
-        photo_booth_priority = false;
-        photo_booth_cv.notify_all();
 
         // Exiting the photo booth
         photo_booth_access.unlock();
@@ -188,19 +187,12 @@ void *visitorThreadFunction(void *arg)
     else if (isStandard(visitor->getId()))
     {
 
-        // photo_booth_cv.wait(lock, [] { return !photo_booth_priority; });
-
-        // Entering the photo booth
-        // photo_booth_access.lock();
-        // photo_booth_access.unlock();
-
         {
             unique_lock<mutex> lock(photo_booth_access);
             photo_booth_cv.wait(lock, [&]
                                 { return !photo_booth_priority; });
         }
 
-        // Reader-Writer Logic
         {
             lock_guard<mutex> lock(standard_access_lock);
             standard_visitor_count++;

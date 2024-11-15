@@ -7,6 +7,7 @@ using namespace std;
 
 #define GALLERY1_CAPACITY 5
 #define GLASS_CORIDOR_DE_CAPACITY 3
+#define PREMIUM_VISITOR_PROBABILITY 7
 
 void createVisitors(int standard_visitors, int premium_visitors, MuseumParameters &museum_parameters)
 {
@@ -18,7 +19,7 @@ void createVisitors(int standard_visitors, int premium_visitors, MuseumParameter
     {
         int random_delay = get_random_number() % 10 + 1;
 
-        if (premium_visitors > 0 && (random_delay <= 5 || standard_visitors == 0))
+        if (premium_visitors > 0 && (random_delay <= PREMIUM_VISITOR_PROBABILITY || standard_visitors == 0))
         {
             // Create a premium visitor
             create_Visitor_Thread(new Visitor(2001 + current_premium_visitors, 1), museum_parameters);

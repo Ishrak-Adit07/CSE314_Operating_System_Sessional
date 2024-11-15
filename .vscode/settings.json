@@ -4,6 +4,7 @@
         "iostream": "cpp",
         "iosfwd": "cpp",
         "new": "cpp",
-        "condition_variable": "cpp"
+        "condition_variable": "cpp",
+        "atomic": "cpp"
     }
 }
