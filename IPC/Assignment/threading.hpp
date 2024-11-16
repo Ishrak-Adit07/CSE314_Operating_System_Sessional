@@ -29,12 +29,8 @@ mutex photo_booth_access;
 mutex photo_booth_exclusive;
 mutex standard_access_lock;
 mutex premium_access_lock;
-mutex photo_booth_priority_guard;
-// Condition variables for photo booth locking
-condition_variable photo_booth_cv;
-// Boolean variables for condition variables
-bool photo_booth_priority;
 
+// Count variables for exclusive locking
 int standard_visitor_count = 0;
 int premium_visitor_count = 0;
 
@@ -42,6 +38,7 @@ int premium_visitor_count = 0;
 sem_t gallery1_semaphore;
 sem_t glass_corridor_de_semaphore;
 
+// function for visitor authorization
 bool isPremium(int id) { return id > 2000 && id <= 2999; }
 bool isStandard(int id) { return id > 1000 && id <= 1999; }
 
@@ -159,63 +156,43 @@ void *visitorThreadFunction(void *arg)
         cout << "Visitor " << visitor->getId() << " is about to enter the photo booth at timestamp " << time_stamp << endl;
     }
 
-    // Implementation for photo booth (Incomplete)
+    // Implementation for photo booth
     // Premium visitors
     if (isPremium(visitor->getId()))
     {
-        {
-            lock_guard<mutex> lock(photo_booth_priority_guard);
-            photo_booth_priority = true;
-        }
-        photo_booth_cv.notify_all();
-
-        // Entering the photo booth
-        photo_booth_access.lock();
+        premium_access_lock.lock();
+        premium_visitor_count++;
+        if (premium_visitor_count == 1)
+            photo_booth_access.lock();
+        premium_access_lock.unlock();
 
         // Exclusive access
         photo_booth_exclusive.lock(); // Lock exclusive access
         {
             lock_guard<mutex> lock(cout_mutex);
             cout << "Visitor " << visitor->getId() << " is inside the photo booth at timestamp " << time_stamp << endl;
-
-            {
-                lock_guard<mutex> lock(photo_booth_priority_guard);
-                photo_booth_priority = false;
-            }
-            photo_booth_cv.notify_all();
         }
-        // sleep(museum_parameters->getPhotoBoothTime());
-        sleep(6);
+        sleep(museum_parameters->getPhotoBoothTime());
         photo_booth_exclusive.unlock(); // Unlock exclusive access
 
-        // Exiting the photo booth
-        photo_booth_access.unlock();
+        premium_access_lock.lock();
+        premium_visitor_count--;
+        if (premium_visitor_count == 0)
+            photo_booth_access.unlock();
+        premium_access_lock.unlock();
     }
     // Standard visitors
     else if (isStandard(visitor->getId()))
     {
+        photo_booth_access.lock();
 
-        // {
-        //     lock_guard<mutex> lock1(photo_booth_priority_guard);
-        //     {
-        //         unique_lock<mutex> lock(photo_booth_access);
-        //         photo_booth_cv.wait(lock, [&]
-        //                             { return !photo_booth_priority; });
-        //     }
-        // }
+        standard_access_lock.lock();
+        standard_visitor_count++;
+        if (standard_visitor_count == 1)
+            photo_booth_exclusive.lock();
+        standard_access_lock.unlock();
 
-        {
-            unique_lock<mutex> lock(photo_booth_access);
-            photo_booth_cv.wait(lock, [&]
-                                { return !photo_booth_priority; });
-        }
-
-        {
-            lock_guard<mutex> lock(standard_access_lock);
-            standard_visitor_count++;
-            if (standard_visitor_count == 1)
-                photo_booth_exclusive.lock(); // First standard visitor locks exclusive access
-        }
+        photo_booth_access.unlock();
 
         {
             lock_guard<mutex> lock(cout_mutex);
@@ -224,19 +201,18 @@ void *visitorThreadFunction(void *arg)
         sleep(museum_parameters->getPhotoBoothTime());
 
         // Exiting the photo booth
-        {
-            lock_guard<mutex> lock(standard_access_lock);
-            standard_visitor_count--;
-            if (standard_visitor_count == 0)
-                photo_booth_exclusive.unlock(); // Last standard visitor unlocks exclusive access
-        }
+        standard_access_lock.lock();
+        standard_visitor_count--;
+        if (standard_visitor_count == 0)
+            photo_booth_exclusive.unlock();
+        standard_access_lock.unlock();
     }
 
     // Exit from museum
-    // {
-    //     lock_guard<mutex> lock(cout_mutex);
-    //     cout << "Visitor " << visitor->getId() << " has exited museum at timestamp " << time_stamp << endl;
-    // }
+    {
+        lock_guard<mutex> lock(cout_mutex);
+        cout << "Visitor " << visitor->getId() << " has exited museum at timestamp " << time_stamp << endl;
+    }
 
     delete thread_arguments; // Correctly delete the struct
     return nullptr;
@@ -257,5 +233,5 @@ void create_Visitor_Thread(Visitor *visitor, MuseumParameters &museum_parameters
         return;
     }
 
-    visitorThreads.push_back(thread); // Store the thread ID for later joining
+    visitorThreads.push_back(thread);
 }
