@@ -1,4 +1,3 @@
-#include <fstream>
 #include "threading.hpp"
 
 using namespace std;
@@ -55,17 +54,8 @@ int main(void)
     int standard_visitors, premium_visitors;
     int hallway_time, gallery1_time, gallery2_time, photo_booth_time;
 
-    ifstream inputFile("input.txt");
-    if (!inputFile)
-    {
-        cout << "Error opening file." << endl;
-        return 1;
-    }
-    inputFile >> standard_visitors >> premium_visitors;
-    inputFile >> hallway_time >> gallery1_time >> gallery2_time >> photo_booth_time;
-
-    // cin >> standard_visitors >> premium_visitors;
-    // cin >> hallway_time >> gallery1_time >> gallery2_time >> photo_booth_time;
+    cin >> standard_visitors >> premium_visitors;
+    cin >> hallway_time >> gallery1_time >> gallery2_time >> photo_booth_time;
     MuseumParameters museum_parameters(standard_visitors, premium_visitors, hallway_time, gallery1_time, gallery2_time, photo_booth_time);
 
     srand(time(nullptr));

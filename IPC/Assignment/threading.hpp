@@ -1,10 +1,9 @@
-#include "visitor.hpp"
-#include <pthread.h>
-#include <unistd.h>
+#include "params.hpp"
 #include <vector>
+#include <unistd.h>
+#include <pthread.h>
 #include <mutex>
 #include <semaphore.h>
-#include <condition_variable>
 #include "poisson_random_number_generator.hpp"
 
 using namespace std;
@@ -13,7 +12,7 @@ using namespace std;
 #define GLASS_CORRIDOR_DELAY 5
 
 int time_stamp = 0;
-vector<pthread_t> visitorThreads;
+vector<pthread_t> visitor_threads;
 
 // Auxiliary mutex for exclusive printing and timestamp update
 mutex cout_mutex;
@@ -54,13 +53,6 @@ void *timeStampUpdate(void *arg)
     return nullptr;
 }
 
-// For simultaneously passing arguments to visitor thread function
-struct VisitorThreadArgs
-{
-    Visitor *visitor;
-    MuseumParameters *museum_parameters;
-};
-
 // Thread function for museum visit
 void *visitorThreadFunction(void *arg)
 {
@@ -74,14 +66,14 @@ void *visitorThreadFunction(void *arg)
         lock_guard<mutex> lock(cout_mutex);
         cout << "Visitor " << visitor->getId() << " has arrived at A at timestamp " << time_stamp << endl;
     }
-    // Hallway AB
+    // Delay for hallway AB
     sleep(museum_parameters->getHallwayTime());
     {
         lock_guard<mutex> lock(cout_mutex);
         cout << "Visitor " << visitor->getId() << " has arrived at B at timestamp " << time_stamp << endl;
     }
 
-    // Steps
+    // Implementation of steps
     step_1.lock();
     {
         lock_guard<mutex> lock(cout_mutex);
@@ -107,32 +99,30 @@ void *visitorThreadFunction(void *arg)
     sleep(random_sleep_timer);
 
     // Waiting to enter Gallery 1
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " is waiting to enter Gallery 1 at timestamp " << time_stamp << endl;
-    }
     sem_wait(&gallery1_semaphore);
+
     // Enter Gallery 1
     {
         lock_guard<mutex> lock(cout_mutex);
         cout << "Visitor " << visitor->getId() << " is at C (entered Gallery 1) at timestamp " << time_stamp << endl;
     }
 
-    // Unlocking step 2 only after entering Gallery 1
+    // Unlocking step 3 only after entering Gallery 1
     step_3.unlock();
 
     // Gallery 1
     sleep(museum_parameters->getGallery1Time());
 
+    // Upto Task 1
+
     // Waiting to enter glass corridor
     sem_wait(&glass_corridor_de_semaphore);
-    // Enter glass corridor
+    // Entering glass corridor/ Exiting Gallery 1
     {
         lock_guard<mutex> lock(cout_mutex);
         cout << "Visitor " << visitor->getId() << " is at D (exiting Gallery 1) at timestamp " << time_stamp << endl;
     }
 
-    // Upto Task 1
     sem_post(&gallery1_semaphore); // Releasing the semaphore, allowing another visitor to enter gallery 1
                                    // This is released only after exiting gallery 1
 
@@ -148,13 +138,12 @@ void *visitorThreadFunction(void *arg)
 
     sem_post(&glass_corridor_de_semaphore); // Releasing the semaphore, allowing another visitor to enter glass corridor
                                             // This is released only after entering gallery 2
-    // Upto Task 2
 
+    // Upto Task 2
     // Implementation for Gallery 2
 
     // Time spent in gallery 2 before reaching photo booth
     sleep(museum_parameters->getGallery2Time());
-
     {
         lock_guard<mutex> lock(cout_mutex);
         cout << "Visitor " << visitor->getId() << " is about to enter the photo booth at timestamp " << time_stamp << endl;
@@ -213,29 +202,29 @@ void *visitorThreadFunction(void *arg)
     }
 
     // Exit from museum
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " has exited museum at timestamp " << time_stamp << endl;
-    }
+    // {
+    //     lock_guard<mutex> lock(cout_mutex);
+    //     cout << "Visitor " << visitor->getId() << " has exited museum at timestamp " << time_stamp << endl;
+    // }
 
-    delete thread_arguments; // Correctly delete the struct
+    delete thread_arguments;
     return nullptr;
 }
 
 void create_Visitor_Thread(Visitor *visitor, MuseumParameters &museum_parameters)
 {
-    pthread_t thread;
+    pthread_t visitor_thread;
 
     VisitorThreadArgs *thread_arguments = new VisitorThreadArgs();
     thread_arguments->visitor = visitor;
     thread_arguments->museum_parameters = &museum_parameters;
 
-    if (pthread_create(&thread, nullptr, visitorThreadFunction, thread_arguments) != 0)
+    if (pthread_create(&visitor_thread, nullptr, visitorThreadFunction, thread_arguments) != 0)
     {
         cout << "Error creating thread" << endl;
         delete thread_arguments;
         return;
     }
 
-    visitorThreads.push_back(thread);
+    visitor_threads.push_back(visitor_thread);
 }

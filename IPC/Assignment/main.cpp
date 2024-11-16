@@ -12,11 +12,10 @@ void createVisitors(int standard_visitors, int premium_visitors, MuseumParameter
     int current_standard_visitors = 0;
     int current_premium_visitors = 0;
 
-    // Loop until all visitors are created
+    // Randomly creating standard and premium visitor threads
     while (standard_visitors > 0 || premium_visitors > 0)
     {
         int random_delay = get_random_number() % 10 + 1;
-
         if (premium_visitors > 0 && (random_delay <= PREMIUM_VISITOR_PROBABILITY || standard_visitors == 0))
         {
             // Creating a premium visitor
@@ -32,6 +31,7 @@ void createVisitors(int standard_visitors, int premium_visitors, MuseumParameter
             current_standard_visitors++;
         }
 
+        // Delay after creating every visitor thread
         sleep(random_delay);
     }
 }
@@ -47,9 +47,11 @@ int main(void)
         return 1;
     }
 
+    // Initiating semaphores
     sem_init(&gallery1_semaphore, 0, GALLERY1_CAPACITY);
     sem_init(&glass_corridor_de_semaphore, 0, GLASS_CORIDOR_DE_CAPACITY);
 
+    // Parameter inputs
     int standard_visitors, premium_visitors;
     int hallway_time, gallery1_time, gallery2_time, photo_booth_time;
 
@@ -64,18 +66,15 @@ int main(void)
 
     // cin >> standard_visitors >> premium_visitors;
     // cin >> hallway_time >> gallery1_time >> gallery2_time >> photo_booth_time;
-
     MuseumParameters museum_parameters(standard_visitors, premium_visitors, hallway_time, gallery1_time, gallery2_time, photo_booth_time);
 
     srand(time(nullptr));
-
     createVisitors(standard_visitors, premium_visitors, museum_parameters);
 
-    for (auto &thread : visitorThreads)
-    {
+    for (auto &thread : visitor_threads)
         pthread_join(thread, nullptr);
-    }
 
+    // Destroying semaphores
     sem_destroy(&gallery1_semaphore);
     sem_destroy(&glass_corridor_de_semaphore);
     return 0;

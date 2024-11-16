@@ -55,3 +55,10 @@ public:
         gallery2_time = gallery2; photo_booth_time = photo_booth;
     }
 };
+
+// For simultaneously passing arguments to visitor thread function
+struct VisitorThreadArgs
+{
+    Visitor *visitor;
+    MuseumParameters *museum_parameters;
+};

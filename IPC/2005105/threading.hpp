@@ -73,7 +73,7 @@ void *visitorThreadFunction(void *arg)
         cout << "Visitor " << visitor->getId() << " has arrived at B at timestamp " << time_stamp << endl;
     }
 
-    // Steps
+    // Implementation of steps
     step_1.lock();
     {
         lock_guard<mutex> lock(cout_mutex);
@@ -107,7 +107,7 @@ void *visitorThreadFunction(void *arg)
         cout << "Visitor " << visitor->getId() << " is at C (entered Gallery 1) at timestamp " << time_stamp << endl;
     }
 
-    // Unlocking step 2 only after entering Gallery 1
+    // Unlocking step 3 only after entering Gallery 1
     step_3.unlock();
 
     // Gallery 1
@@ -207,7 +207,7 @@ void *visitorThreadFunction(void *arg)
     //     cout << "Visitor " << visitor->getId() << " has exited museum at timestamp " << time_stamp << endl;
     // }
 
-    delete thread_arguments; // Correctly delete the struct
+    delete thread_arguments;
     return nullptr;
 }
 
