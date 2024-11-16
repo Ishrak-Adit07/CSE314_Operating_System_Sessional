@@ -184,7 +184,8 @@ void *visitorThreadFunction(void *arg)
             }
             photo_booth_cv.notify_all();
         }
-        sleep(museum_parameters->getPhotoBoothTime());
+        // sleep(museum_parameters->getPhotoBoothTime());
+        sleep(6);
         photo_booth_exclusive.unlock(); // Unlock exclusive access
 
         // Exiting the photo booth
@@ -194,13 +195,19 @@ void *visitorThreadFunction(void *arg)
     else if (isStandard(visitor->getId()))
     {
 
+        // {
+        //     lock_guard<mutex> lock1(photo_booth_priority_guard);
+        //     {
+        //         unique_lock<mutex> lock(photo_booth_access);
+        //         photo_booth_cv.wait(lock, [&]
+        //                             { return !photo_booth_priority; });
+        //     }
+        // }
+
         {
-            lock_guard<mutex> lock1(photo_booth_priority_guard);
-            {
-                unique_lock<mutex> lock(photo_booth_access);
-                photo_booth_cv.wait(lock, [&]
-                                    { return !photo_booth_priority; });
-            }
+            unique_lock<mutex> lock(photo_booth_access);
+            photo_booth_cv.wait(lock, [&]
+                                { return !photo_booth_priority; });
         }
 
         {
@@ -226,10 +233,10 @@ void *visitorThreadFunction(void *arg)
     }
 
     // Exit from museum
-    {
-        lock_guard<mutex> lock(cout_mutex);
-        cout << "Visitor " << visitor->getId() << " has exited museum at timestamp " << time_stamp << endl;
-    }
+    // {
+    //     lock_guard<mutex> lock(cout_mutex);
+    //     cout << "Visitor " << visitor->getId() << " has exited museum at timestamp " << time_stamp << endl;
+    // }
 
     delete thread_arguments; // Correctly delete the struct
     return nullptr;
