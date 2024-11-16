@@ -52,8 +52,8 @@ int main(void)
     sem_init(&glass_corridor_de_semaphore, 0, GLASS_CORIDOR_DE_CAPACITY);
 
     // Parameter inputs
-    int standard_visitors, premium_visitors;
-    int hallway_time, gallery1_time, gallery2_time, photo_booth_time;
+    int standard_visitors = -1, premium_visitors = -1;
+    int hallway_time = -1, gallery1_time = -1, gallery2_time = -1, photo_booth_time = -1;
 
     ifstream inputFile("input.txt");
     if (!inputFile)
@@ -66,6 +66,16 @@ int main(void)
 
     // cin >> standard_visitors >> premium_visitors;
     // cin >> hallway_time >> gallery1_time >> gallery2_time >> photo_booth_time;
+
+    // Input validation
+    if (standard_visitors < 0 || premium_visitors < 0 ||
+        hallway_time < 0 || gallery1_time < 0 ||
+        gallery2_time < 0 || photo_booth_time < 0)
+    {
+        cout << "Invalid input! Please ensure all values are non-negative." << endl;
+        return 1;
+    }
+    // Input integration
     MuseumParameters museum_parameters(standard_visitors, premium_visitors, hallway_time, gallery1_time, gallery2_time, photo_booth_time);
 
     srand(time(nullptr));
