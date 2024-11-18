@@ -11,6 +11,8 @@ void createVisitors(int standard_visitors, int premium_visitors, MuseumParameter
     int current_standard_visitors = 0;
     int current_premium_visitors = 0;
 
+    sleep(get_random_number() % 3 + 1);
+
     // Randomly creating standard and premium visitor threads
     while (standard_visitors > 0 || premium_visitors > 0)
     {
@@ -35,9 +37,8 @@ void createVisitors(int standard_visitors, int premium_visitors, MuseumParameter
     }
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
-
     // Starting the time_stamp updater thread
     pthread_t timeThread;
     if (pthread_create(&timeThread, nullptr, timeStampUpdate, nullptr) != 0)
@@ -54,12 +55,24 @@ int main(void)
     int standard_visitors = -1, premium_visitors = -1;
     int hallway_time = -1, gallery1_time = -1, gallery2_time = -1, photo_booth_time = -1;
 
-    cin >> standard_visitors >> premium_visitors;
-    cin >> hallway_time >> gallery1_time >> gallery2_time >> photo_booth_time;
+    // Taking inputs
+    if (argc != 7)
+    {
+        cout << "Invalid number of arguments! Please provide 6 arguments." << endl;
+        return 1;
+    }
+    standard_visitors = atoi(argv[1]);
+    premium_visitors = atoi(argv[2]);
+    hallway_time = atoi(argv[3]);
+    gallery1_time = atoi(argv[4]);
+    gallery2_time = atoi(argv[5]);
+    photo_booth_time = atoi(argv[6]);
+
     // Input validation
     if (standard_visitors < 0 || premium_visitors < 0 ||
         hallway_time < 0 || gallery1_time < 0 ||
-        gallery2_time < 0 || photo_booth_time < 0) {
+        gallery2_time < 0 || photo_booth_time < 0)
+    {
         cout << "Invalid input! Please ensure all values are non-negative." << endl;
         return 1;
     }
