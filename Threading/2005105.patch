@@ -864,7 +864,7 @@ index 58a8a0b..7e56521 100644
 +}
 \ No newline at end of file
 diff --git a/kernel/proc.h b/kernel/proc.h
-index d021857..bb05b76 100644
+index d021857..7f35aa3 100644
 --- a/kernel/proc.h
 +++ b/kernel/proc.h
 @@ -47,7 +47,7 @@ struct trapframe {
@@ -881,9 +881,9 @@ index d021857..bb05b76 100644
    struct inode *cwd;           // Current directory
    char name[16];               // Process name (debugging)
 +
-+  int is_thread;               // True if it is a thread
-+  int mem_id;                  // All threads will have the same physical pages with the mother, hence the same memory ID
-+  struct mem *mem;             // pointer to the memory struct
++  struct spinlock memlock;	// find places to set and release the locks 
++  int is_thread;               // if it is thread
++  int mem_id;                   // All threads will have the same physical pages with the mothrer, hence the same memory ID
  };
 diff --git a/kernel/syscall.c b/kernel/syscall.c
 index ed65409..41a6ae4 100644
